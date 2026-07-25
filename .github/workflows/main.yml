@@ -14,6 +14,11 @@ jobs:
       - name: 安装 Ubuntu 编译依赖
         run: sudo apt update && sudo apt install git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 -y
 
+      - name: 修复 Python 环境
+        run: |
+          pip install --upgrade pip
+          pip install --upgrade setuptools wheel
+
       - name: 拉取 ESP-IDF 框架
         run: |
           git clone -b v5.1 --depth 1 https://github.com/espressif/esp-idf.git ~/esp-idf
@@ -28,7 +33,14 @@ jobs:
           idf.py build
 
       - name: 打包生成的bin固件
+        run: |
+          mkdir -p firmware
+          cp ccc/build/*.bin firmware/ || true
+          cp ccc/build/bootloader/bootloader.bin firmware/ || true
+          cp ccc/build/partition_table/partition-table.bin firmware/ || true
+
+      - name: 上传固件
         uses: actions/upload-artifact@v4
         with:
-          name: 小智_ESP32S3_固件包
-          path: ccc/build/*.bin
+          name: ESP32-S3-Firmware
+          path: firmware/
