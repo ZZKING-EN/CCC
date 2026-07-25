@@ -1,0 +1,100 @@
+name: 编译小智机器人固件
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - "README.md"
+      - "*.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  build_firmware:
+    name: build_firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    container:
+      image: espressif/idf:v6.0.2
+
+    steps:
+      - name: 获取机器人板卡文件
+        uses: actions/checkout@v4
+
+      - name: 获取小智官方v2.4.0源码
+        uses: actions/checkout@v4
+        with:
+          repository: 78/xiaozhi-esp32
+          ref: v2.4.0
+          path: xiaozhi
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: 检查环境
+        shell: bash
+        run: |
+          idf.py --version
+          python --version
+          ls -la
+
+      - name: 安装机器人自定义板卡
+        shell: bash
+        run: |
+          python install_into_xiaozhi.py xiaozhi
+          test -f xiaozhi/main/boards/robot-s3-n16r8/config.h
+          test -f xiaozhi/main/boards/robot-s3-n16r8/config.json
+
+      - name: 编译并打包固件
+        shell: bash
+        working-directory: xiaozhi
+        run: |
+          python scripts/release.py robot-s3-n16r8
+
+      - name: 收集固件文件
+        if: success()
+        shell: bash
+        run: |
+          mkdir -p firmware_output
+
+          find xiaozhi -type f \
+            \( -name "*.bin" -o -name "*.zip" -o -name "flash_args" -o -name "flasher_args.json" \) \
+            -print
+
+          while IFS= read -r file; do
+            relative="${file#xiaozhi/}"
+            safe_name="$(echo "$relative" | tr '/ ' '__')"
+            cp "$file" "firmware_output/$safe_name"
+          done < <(
+            find xiaozhi -type f \
+              \( -name "*.bin" -o -name "*.zip" -o -name "flash_args" -o -name "flasher_args.json" \)
+          )
+
+          cat > firmware_output/烧录说明.txt <<'EOF'
+优先寻找 merged-binary.bin。
+
+使用乐鑫 Flash Download Tool：
+ChipType：ESP32-S3
+固件地址：0x0
+Flash Size：16MB
+
+先ERASE，再START。
+
+如果下载结果中有v2.4.0_robot-s3-n16r8.zip，
+请先解压它，再寻找merged-binary.bin。
+EOF
+
+          ls -lah firmware_output
+
+      - name: 上传固件
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi-robot-s3-firmware
+          path: firmware_output
+          if-no-files-found: error
+          retention-days: 30
