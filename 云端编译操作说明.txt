@@ -1,0 +1,121 @@
+云端编译操作说明
+================
+
+为什么不是现在直接给一个BIN
+--------------------------
+BIN不是把源码文件改后缀得到的，必须使用ESP-IDF把：
+- 小智官方源码
+- 音频组件
+- Wi-Fi组件
+- 唤醒词组件
+- 自定义屏幕代码
+- 舵机和电机代码
+一起编译、链接、生成分区和引导程序。
+
+没有经过编译的“BIN”无法启动。
+
+你不需要学习ESP-IDF
+------------------
+这个包把编译放到了GitHub云端。
+你的电脑只需要浏览器。
+
+具体步骤
+--------
+一、登录GitHub
+
+二、右上角加号
+New repository
+
+三、仓库名称随便写，例如：
+xiaozhi-robot-build
+
+四、选择Public或Private均可
+点击Create repository
+
+五、点击：
+uploading an existing file
+
+六、解压本压缩包
+把解压出来的所有文件和文件夹拖进上传页面
+
+注意必须包括隐藏目录：
+.github
+
+Windows若看不到.github：
+不要逐个挑文件，直接把解压后的文件夹内容整体拖入浏览器。
+
+七、点击Commit changes
+
+八、点击仓库顶部：
+Actions
+
+九、左侧点击：
+编译小智机器人固件
+
+十、点击右侧：
+Run workflow
+再点击绿色Run workflow
+
+十一、等待
+第一次通常较慢，因为要下载ESP-IDF组件。
+
+十二、编译成功后
+点击绿色的运行记录
+拖到页面最下面
+在Artifacts中下载：
+xiaozhi-robot-s3-firmware
+
+十三、解压
+优先找：
+merged-binary.bin
+
+乐鑫官方工具烧录
+----------------
+ChipType：
+ESP32-S3
+
+WorkMode：
+Develop
+
+LoadMode：
+UART
+
+添加：
+merged-binary.bin
+
+地址：
+0x0
+
+SPI SPEED：
+40MHz
+
+SPI MODE：
+DIO
+
+FLASH SIZE：
+16MB
+
+先ERASE
+再START
+
+若没有merged-binary.bin
+----------------------
+查看下载结果中是否有：
+v2.4.0_robot-s3-n16r8.zip
+或名称相近的固件压缩包。
+
+解压该固件包，一般会包含merged-binary.bin。
+
+若云端编译失败
+--------------
+这不代表你的硬件有问题。
+说明自定义代码与小智v2.4.0某个真实接口还有差异。
+
+打开红色任务：
+Build and package firmware
+
+复制从第一行：
+error:
+
+开始，一直到任务结束的内容。
+发给我继续修改。
